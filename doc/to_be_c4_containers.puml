@@ -1,0 +1,62 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/refs/heads/master/C4_Container.puml
+
+Person(user, 'Пользователь')
+
+System_Boundary(system, 'Кинобездна') {
+    Container(apps, 'Клиентские приложения', 'Web/Android/iOS/TV')
+    Container(api_gateway, 'API Gateway', 'Go', 'Единая точка входа')
+    
+    Container(users_service, 'Users Service', 'Go', 'Авторизация, управление пользователями')
+    ContainerDb(users_db, 'Users Database', 'PostgreSQL', 'Хранение данных о пользователях')
+    
+    Container(payments_service, 'Payments Service', 'Go', 'Работа с платежами, подписками, скидками')
+    ContainerDb(payments_db, 'Payments Database', 'PostgreSQL', 'Хранение данных об подписках, оплатах, скидках')
+    Container_Ext(ext_payments, 'Payment System', '', 'Внешняя платежная система')
+    
+    Container(movies_service, 'Movies Service', 'Go', 'Работа с метаданными о фильмах')
+    ContainerDb(movies_db, 'Movies Database', 'PostgreSQL', 'Хранение данных о фильмах')
+    Container_Ext(ext_cinemas, 'Partner Cinema', '', 'Партнерские кинотеатры') 
+    
+    Container(video_service, 'Video Service', 'Go', 'Работа с видео в S3, стриминг')
+    ContainerDb(video_db, 'Video Database', 'PostgreSQL', 'Хранение метаданных о видео')
+    ContainerDb(video_storage, 'Video Storage', 'S3', 'Хранение видеофайлов')
+    
+    Container(ratings_service, 'Ratings Service', 'Go', 'Работа с оценками и избранным')
+    ContainerDb(ratings_db, 'Ratings Database', 'PostgreSQL', 'Хранение оценок и списка избранного')
+    
+    Container(rec_service, 'Recommendation Service', 'Go', 'Получение списка рекоммендаций')
+    ContainerDb(rec_db, 'Recommendation Database', 'PostgreSQL', 'Хранение рекоммендаций')
+    Container(rabbit_mq, 'RabbitMQ', 'AMPQ', 'Брокер сообщений для рекомендаций')
+    Container_Ext(ext_recommendations, 'Recommendation System', '',  'Внешняя система рекомендацией')
+}
+
+Rel(user, apps, 'Запросы от пользователя', 'HTTPS')
+Rel(apps, api_gateway, 'Использует REST API', 'HTTPS')
+
+Rel(api_gateway, users_service, 'Авторизация, регистрация, изменение данных аккаунта', 'HTTP')
+Rel(users_service, users_db, 'SQL')
+
+Rel(api_gateway, payments_service, 'Привязка методов оплаты, оформление подписок')
+Rel(payments_service, payments_db, 'SQL')
+Rel(payments_service, ext_payments, 'Проведение оплаты')
+
+Rel(api_gateway, movies_service, 'Получение каталога, деталей фильма')
+Rel(movies_service, movies_db, 'SQL')
+Rel(movies_service, ext_cinemas, 'Расширение каталога за счет партнеров')
+
+Rel(api_gateway, video_service, 'Получение ссылки на видео')
+Rel(video_service, video_db, 'SQL')
+Rel(video_service, video_storage, 'HTTP')
+
+Rel(api_gateway, ratings_service, 'Изменение оценки, избранного')
+Rel(ratings_service, ratings_db, 'SQL')
+
+Rel(api_gateway, rec_service, 'Получить рекоммендации')
+Rel(rec_service, rec_db, 'SQL')
+Rel(rec_service, rabbit_mq, 'Отправляет оценки, добавление в избранное')
+Rel(rabbit_mq, ext_recommendations, 'Читает события')
+Rel(ext_recommendations, rabbit_mq, 'Отправляет списки рекоммендаций')
+Rel(rabbit_mq, rec_service, 'Получает списки рекоммендаций')
+
+@enduml
